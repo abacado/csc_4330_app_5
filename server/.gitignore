@@ -1,0 +1,6 @@
+.dart_tool/
+pubspec_overrides.yaml
+# Runtime data written by the server.
+data/*.json
+data/*.tmp
+pubspec.lock
