@@ -40,3 +40,13 @@ class ConflictException extends ApiError {
   @override
   int get statusCode => 409;
 }
+
+/// 405: the path exists but does not support this HTTP method.
+class MethodNotAllowedException extends ApiError {
+  MethodNotAllowedException(String method, this.allowed)
+      : super('$method is not allowed here. Use ${allowed.join(' or ')}.');
+  final List<String> allowed;
+
+  @override
+  int get statusCode => 405;
+}
