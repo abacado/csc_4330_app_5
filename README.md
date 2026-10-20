@@ -15,3 +15,15 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+## Running with the server
+
+Listings and swap requests are stored by the HobbySwap server in `server/`.
+Start it before running the app:
+
+```bash
+cd server && dart pub get && dart run bin/server.dart
+```
+
+Then run the app with `flutter run`. See [server/README.md](server/README.md)
+for connecting a real phone, the API reference, and tests.

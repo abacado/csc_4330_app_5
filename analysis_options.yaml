@@ -18,6 +18,7 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
+    - server/**  # separate Dart package, analyzed by the server CI job
 
 linter:
   # The lint rules applied to this project can be customized in the
