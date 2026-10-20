@@ -1,0 +1,62 @@
+import 'package:flutter/material.dart';
+
+import '../hobbies/explore_page.dart';
+import '../listings/post_page.dart';
+import '../messages/messages_page.dart';
+import '../profile/profile_page.dart';
+import 'home_page.dart';
+
+class AppShell extends StatefulWidget {
+  const AppShell({super.key});
+  @override
+  State<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends State<AppShell> {
+  int _selected = 0;
+  static const _labels = ['Home', 'Explore', 'Post', 'Messages', 'Profile'];
+  static const _icons = [
+    Icons.home_outlined,
+    Icons.explore_outlined,
+    Icons.add_circle_outline,
+    Icons.chat_bubble_outline,
+    Icons.person_outline,
+  ];
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title: Text(_selected == 0 ? 'HobbySwap' : _labels[_selected]),
+    ),
+    body: SafeArea(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: IndexedStack(
+            index: _selected,
+            children: [
+              HomePage(
+                onExplore: () => setState(() => _selected = 1),
+                onPost: () => setState(() => _selected = 2),
+              ),
+              const ExplorePage(),
+              const PostPage(),
+              const MessagesPage(),
+              const ProfilePage(),
+            ],
+          ),
+        ),
+      ),
+    ),
+    bottomNavigationBar: NavigationBar(
+      selectedIndex: _selected,
+      onDestinationSelected: (index) => setState(() => _selected = index),
+      destinations: List.generate(
+        _labels.length,
+        (index) => NavigationDestination(
+          icon: Icon(_icons[index]),
+          label: _labels[index],
+        ),
+      ),
+    ),
+  );
+}
