@@ -1,0 +1,14 @@
+name: hobbyswap_server
+description: HobbySwap API server with JSON-file persistence.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.5.0
+
+# The server uses only dart:io so it runs with a plain Dart (or Flutter) SDK.
+dependencies: {}
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0
