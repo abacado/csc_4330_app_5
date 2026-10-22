@@ -51,11 +51,7 @@ class ApiClient {
 
   /// All listings, newest first. Pass [hobbyId] to show one hobby's listings.
   Future<List<Listing>> getListings({String? hobbyId}) async {
-    final body = await _send(
-      'GET',
-      '/listings',
-      query: {if (hobbyId != null) 'hobbyId': hobbyId},
-    );
+    final body = await _send('GET', '/listings', query: {'hobbyId': ?hobbyId});
     return _parse(
       () => [for (final item in body as List) Listing.fromJson(item)],
     );

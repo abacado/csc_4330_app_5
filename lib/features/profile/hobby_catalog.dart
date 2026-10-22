@@ -1,8 +1,8 @@
 /// Every hobby a user can pick, with search keywords.
 ///
-/// Ids are lowercase slugs of the name (`painting`, `board-games`). The six
-/// hobbies on the Explore tab keep the same names, ids, and icons here, so
-/// listings filed under them match profiles.
+/// Ids are lowercase slugs of the name (`painting`, `board-games`). The
+/// Explore tab's hobbies (`features/hobbies/hobby_catalog.dart`) keep the same
+/// names, ids, and icons here, so listings filed under them match profiles.
 library;
 
 import 'package:flutter/material.dart';
