@@ -1,7 +1,8 @@
 import 'dart:convert';
 
 import 'package:csc_4330_hobby_app/data/data.dart';
-import 'package:csc_4330_hobby_app/features/hobbies/explore_page.dart';
+import 'package:csc_4330_hobby_app/features/hobbies/hobby_catalog.dart'
+    as explore;
 import 'package:csc_4330_hobby_app/features/profile/profile.dart';
 import 'package:csc_4330_hobby_app/features/profile/profile_page.dart';
 import 'package:flutter/material.dart';
@@ -182,8 +183,8 @@ void main() {
     test('ids are unique and include every Explore hobby', () {
       final ids = HobbyCatalog.all.map((h) => h.id).toList();
       expect(ids.toSet().length, ids.length);
-      for (final name in ExplorePage.hobbies.keys) {
-        expect(HobbyCatalog.byId(name.toLowerCase())?.name, name);
+      for (final hobby in explore.hobbyCatalog) {
+        expect(HobbyCatalog.byId(hobby.id)?.name, hobby.name);
       }
       expect(HobbyCatalog.all.length, greaterThan(100));
     });
