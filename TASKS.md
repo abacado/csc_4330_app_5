@@ -8,8 +8,12 @@ Demo: open the app, explore a hobby, create a listing, load it from the server,
 request a swap, and view that request. Login stays a clearly labeled placeholder.
 Borrowing, teaching, reviews, location matching, and friends are deferred.
 
-The current scaffold provides theme, navigation, feature folders, starter hobby
-pages, and honest placeholders. It does not save data or include a server yet.
+The app provides theme, navigation, searchable hobby guides, first-project ideas,
+and interactive starter checklists. Checklist progress lasts for the current app
+session. Home loads available listings from the shared API and supports refresh,
+details, empty results, and retry after errors. Distance filtering is not implemented.
+The server and API client are merged, with persistent listings/requests and tests.
+Post, Profile, and Messages still need their assigned feature implementations.
 
 ## Four owners
 
@@ -59,14 +63,36 @@ Demo identities are not authentication; use sample data only for this version.
 - [x] Git repository exists and local folder is connected.
 - [x] Shared sage/peach theme and five-tab navigation.
 - [x] Feature folders and navigation smoke test.
-- [ ] Shared scaffold committed and pushed for teammates.
-- [ ] Server component implemented with persistent data.
+- [x] Shared scaffold committed and pushed for teammates.
+- [x] Server component implemented with persistent data.
+- [x] Searchable hobby guides, beginner projects, and interactive starter checklists implemented locally.
+- [x] Home reads available listings from the server with loading, empty, error/retry, and detail states implemented locally.
+- [ ] Abigail's latest feature changes committed and pushed.
 - [ ] Listings and requests connected to server.
 - [ ] Automated build verified on GitHub (workflow already exists).
 - [ ] App tested on a phone, including server failure behavior.
-- [ ] Setup instructions include server launch and device connection.
+- [x] Setup instructions include server launch and device connection (`server/README.md`).
 - [ ] Demo video recorded and linked.
 - [ ] Final task ownership/completion updated and submission delivered.
+
+## Abigail: remaining integration and demo work
+
+- [ ] Merge Student 2's listing creation and Student 3's profile/request screens when ready.
+- [ ] Confirm a listing created in Post appears on Home after tapping Refresh.
+- [ ] Run the complete create-listing/request/accept flow on a phone with two demo identities.
+- [ ] Confirm server errors are understandable on the phone and data survives a restart.
+- [ ] Confirm the final GitHub APK build succeeds.
+- [x] Rebuild the Pages preview for Abigail's hobby/Home changes locally; push is still needed.
+- [ ] Collect demo clips, assemble the final video, and add the video URL to README.
+
+See `DEMO.md` for the recording outline and pre-recording checks. Automated widget
+tests cover hobby searching, checklist navigation, listing errors/retry, and display
+of available listings. Those checks do not replace the final phone demonstration.
+
+Verification on October 22: all 14 Flutter tests passed and the release web build
+succeeded. Analysis reported only the existing `use_null_aware_elements` info in
+`lib/data/api_client.dart`; no analysis errors or warnings. The generated web files
+were copied into `docs/`. No physical phone was connected for an end-to-end test.
 
 ## Collaboration
 

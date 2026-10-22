@@ -1,43 +1,61 @@
 import 'package:flutter/material.dart';
 
 import '../../shared/section_page.dart';
+import 'hobby_catalog.dart';
+import 'hobby_detail_page.dart';
 
-class ExplorePage extends StatelessWidget {
+class ExplorePage extends StatefulWidget {
   const ExplorePage({super.key});
-  static const hobbies = {
-    'Painting': Icons.palette_outlined,
-    'Crochet': Icons.interests_outlined,
-    'Gardening': Icons.local_florist_outlined,
-    'Photography': Icons.camera_alt_outlined,
-    'Music': Icons.music_note_outlined,
-    'Baking': Icons.bakery_dining_outlined,
-  };
   @override
-  Widget build(BuildContext context) => SectionPage(
-    icon: Icons.explore_outlined,
-    title: 'What will you try next?',
-    description: 'Explore a hobby and find your next interest.',
-    children: [
-      for (final hobby in hobbies.entries)
-        Card(
-          child: ListTile(
-            leading: Icon(hobby.value),
-            title: Text(hobby.key),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (context) => Scaffold(
-                  appBar: AppBar(title: Text(hobby.key)),
-                  body: SectionPage(
-                    icon: hobby.value,
-                    title: 'Start with ${hobby.key.toLowerCase()}',
-                    description: 'Starter guides, supply checklists, and related listings are coming soon.',
+  State<ExplorePage> createState() => _ExplorePageState();
+}
+
+class _ExplorePageState extends State<ExplorePage> {
+  final Map<String, Set<String>> _progress = {};
+  String _query = '';
+  @override
+  Widget build(BuildContext context) {
+    final hobbies = hobbyCatalog
+        .where(
+          (hobby) =>
+              hobby.name.toLowerCase().contains(_query.toLowerCase().trim()),
+        )
+        .toList();
+    return SectionPage(
+      icon: Icons.explore_outlined,
+      title: 'What will you try next?',
+      description: 'Explore a hobby, plan a first project, and check your starter supplies.',
+      children: [
+        TextField(
+          decoration: const InputDecoration(
+            labelText: 'Search hobbies',
+            prefixIcon: Icon(Icons.search),
+          ),
+          onChanged: (value) => setState(() => _query = value),
+        ),
+        const SizedBox(height: 16),
+        if (hobbies.isEmpty) const Text('No hobbies match your search.'),
+        for (final hobby in hobbies)
+          Card(
+            child: ListTile(
+              leading: Icon(hobby.icon),
+              title: Text(hobby.name),
+              subtitle: const Text('Beginner guide and starter checklist'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => HobbyDetailPage(
+                    hobby: hobby,
+                    checkedItems: _progress.putIfAbsent(
+                      hobby.id,
+                      () => <String>{},
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-    ],
-  );
+      ],
+    );
+  }
 }
