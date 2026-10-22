@@ -1,118 +1,167 @@
-/// The demo user's profile, hobby selections, and wishlist.
+/// The demo user's profile, kept on the server so it survives restarts and
+/// other users can see the unique @username.
 ///
-/// There are no accounts on the server yet (see TASKS.md), so the profile is
-/// kept on the device for this session and tied to [ApiConfig.demoUserId].
 /// Screens share the one [profileStore] and rebuild when it changes.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
-import '../hobbies/explore_page.dart';
+import '../../data/data.dart';
 
-enum HobbyLevel {
-  wantToTry('Want to try'),
-  learning('Learning'),
-  experienced('Experienced');
+export 'hobby_catalog.dart';
 
-  const HobbyLevel(this.label);
-  final String label;
+extension HobbyLevelLabel on HobbyLevel {
+  String get label => switch (this) {
+    HobbyLevel.wantToTry => 'Want to try',
+    HobbyLevel.learning => 'Learning',
+    HobbyLevel.experienced => 'Experienced',
+  };
 }
 
-/// The hobbies a user can pick, taken from the Explore tab so the two stay in
-/// sync. Listing `hobbyId`s are the lowercase hobby names (`painting`).
-abstract final class HobbyCatalog {
-  static Iterable<String> get ids => ExplorePage.hobbies.keys.map(idFor);
-
-  static String idFor(String name) => name.toLowerCase();
-
-  static String nameFor(String id) => ExplorePage.hobbies.keys.firstWhere(
-    (name) => idFor(name) == id,
-    orElse: () => id,
-  );
-
-  static IconData iconFor(String id) =>
-      ExplorePage.hobbies[nameFor(id)] ?? Icons.interests_outlined;
-}
-
-class UserProfile {
-  const UserProfile({
-    required this.displayName,
-    this.bio = '',
-    this.hobbies = const {},
-    this.wishlist = const [],
-  });
-
+/// Limits shared with the server (`server/lib/src/models.dart`).
+abstract final class ProfileRules {
+  static const minUsernameLength = 3;
+  static const maxUsernameLength = 30;
   static const maxNameLength = 40;
   static const maxBioLength = 160;
   static const maxWishLength = 60;
+  static const maxWishlistItems = 50;
 
-  final String displayName;
-  final String bio;
+  /// Usernames are case and symbol sensitive; only whitespace is refused.
+  /// Returns an error message, or null when [value] is acceptable.
+  static String? checkUsername(String value) {
+    final username = value.trim();
+    if (username.length < minUsernameLength) {
+      return 'Use at least $minUsernameLength characters.';
+    }
+    if (username.contains(RegExp(r'\s'))) {
+      return 'Usernames cannot have spaces.';
+    }
+    return null;
+  }
+}
 
-  /// Hobby id → how experienced the user is with it.
-  final Map<String, HobbyLevel> hobbies;
-  final List<String> wishlist;
+extension ProfileDisplay on Profile {
+  String get handle => '@$username';
 
   String get initials {
     final words = displayName.trim().split(RegExp(r'\s+'));
     return words.take(2).map((w) => w.isEmpty ? '' : w[0]).join().toUpperCase();
   }
-
-  UserProfile copyWith({
-    String? displayName,
-    String? bio,
-    Map<String, HobbyLevel>? hobbies,
-    List<String>? wishlist,
-  }) => UserProfile(
-    displayName: displayName ?? this.displayName,
-    bio: bio ?? this.bio,
-    hobbies: hobbies ?? this.hobbies,
-    wishlist: wishlist ?? this.wishlist,
-  );
 }
 
 class ProfileStore extends ChangeNotifier {
-  UserProfile? _profile;
+  /// Defaults to the shared [apiClient] and the demo user; tests pass fakes.
+  ProfileStore({ApiClient? client, String? userId})
+    : _client = client ?? apiClient,
+      userId = userId ?? ApiConfig.demoUserId;
 
-  /// Null until the user creates a profile.
-  UserProfile? get profile => _profile;
+  final ApiClient _client;
+  final String userId;
 
-  /// Creates the profile, or updates its name and bio if it exists.
-  void saveDetails({required String displayName, required String bio}) {
-    _profile =
-        _profile?.copyWith(displayName: displayName, bio: bio) ??
-        UserProfile(displayName: displayName, bio: bio);
+  Profile? _profile;
+  bool _loading = false;
+  ApiException? _loadError;
+  Future<void>? _firstLoad;
+
+  /// Usernames of other users, by user id. Null means they have no profile.
+  final _usernames = <String, String?>{};
+
+  /// Null until loaded, or when the user has not created a profile yet.
+  Profile? get profile => _profile;
+  bool get isLoading => _loading;
+
+  /// Set when the last load failed, for example because the server is down.
+  ApiException? get loadError => _loadError;
+
+  /// Loads the profile from the server the first time it is called.
+  Future<void> ensureLoaded() => _firstLoad ??= reload();
+
+  Future<void> reload() async {
+    _loading = true;
+    _loadError = null;
     notifyListeners();
+    try {
+      _profile = await _client.getProfile(userId);
+    } on ApiException catch (e) {
+      _loadError = e;
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
   }
 
-  void setHobbies(Map<String, HobbyLevel> hobbies) =>
-      _update((p) => p.copyWith(hobbies: Map.unmodifiable(hobbies)));
+  /// Creates or updates the profile on the server.
+  ///
+  /// Throws [ApiException]; a taken username has `field == 'username'`.
+  Future<void> save({
+    required String username,
+    required String displayName,
+    required String bio,
+  }) => _put(
+    _profile?.copyWith(
+          username: username,
+          displayName: displayName,
+          bio: bio,
+        ) ??
+        Profile(
+          userId: userId,
+          username: username,
+          displayName: displayName,
+          bio: bio,
+        ),
+  );
 
-  /// Returns false when [item] is blank or already on the list.
-  bool addWish(String item) {
+  Future<void> setHobbies(Map<String, HobbyLevel> hobbies) =>
+      _put(_profile!.copyWith(hobbies: Map.unmodifiable(hobbies)));
+
+  /// Returns false, without saving, when [item] is blank or already listed.
+  Future<bool> addWish(String item) async {
     final trimmed = item.trim();
     final current = _profile?.wishlist ?? const [];
     final duplicate = current.any(
       (w) => w.toLowerCase() == trimmed.toLowerCase(),
     );
     if (_profile == null || trimmed.isEmpty || duplicate) return false;
-    _update(
-      (p) => p.copyWith(wishlist: List.unmodifiable([...current, trimmed])),
+    await _put(
+      _profile!.copyWith(wishlist: List.unmodifiable([...current, trimmed])),
     );
     return true;
   }
 
-  void removeWish(String item) => _update(
-    (p) => p.copyWith(
-      wishlist: List.unmodifiable(p.wishlist.where((w) => w != item)),
+  Future<void> removeWish(String item) => _put(
+    _profile!.copyWith(
+      wishlist: List.unmodifiable(_profile!.wishlist.where((w) => w != item)),
     ),
   );
 
-  void _update(UserProfile Function(UserProfile) change) {
-    final current = _profile;
-    if (current == null) return;
-    _profile = change(current);
+  Future<void> _put(Profile profile) async {
+    _profile = await _client.saveProfile(profile);
+    _usernames[userId] = _profile!.username;
     notifyListeners();
+  }
+
+  /// `@username` for each of [userIds], falling back to the user id for
+  /// people without a profile or when the server cannot be reached.
+  Future<Map<String, String>> handlesFor(Iterable<String> userIds) async {
+    final missing = {
+      for (final id in userIds)
+        if (!_usernames.containsKey(id) && id != userId) id,
+    };
+    await Future.wait([
+      for (final id in missing)
+        _client
+            .getProfile(id)
+            .then((p) => _usernames[id] = p?.username)
+            .catchError((Object _) => null, test: (e) => e is ApiException),
+    ]);
+    return {
+      for (final id in userIds)
+        id: switch (id == userId ? _profile?.username : _usernames[id]) {
+          final username? => '@$username',
+          null => id,
+        },
+    };
   }
 }
 

@@ -7,23 +7,33 @@ import '../profile/profile.dart';
 ///
 /// Returns the saved request, or null if the user closed the sheet. Any
 /// screen that shows a listing (for example a listing details page) can call
-/// this to add a "Request swap" button.
+/// this to add a "Request swap" button. Pass [ownerHandle] (the owner's
+/// `@username`) when known; otherwise the owner's user id is shown.
 Future<SwapRequest?> showSendRequestSheet(
   BuildContext context,
   Listing listing, {
   ApiClient? client,
+  String? ownerHandle,
 }) => showModalBottomSheet<SwapRequest>(
   context: context,
   isScrollControlled: true,
   showDragHandle: true,
-  builder: (context) =>
-      _SendRequestSheet(listing: listing, client: client ?? apiClient),
+  builder: (context) => _SendRequestSheet(
+    listing: listing,
+    client: client ?? apiClient,
+    ownerHandle: ownerHandle ?? listing.ownerId,
+  ),
 );
 
 class _SendRequestSheet extends StatefulWidget {
-  const _SendRequestSheet({required this.listing, required this.client});
+  const _SendRequestSheet({
+    required this.listing,
+    required this.client,
+    required this.ownerHandle,
+  });
   final Listing listing;
   final ApiClient client;
+  final String ownerHandle;
   @override
   State<_SendRequestSheet> createState() => _SendRequestSheetState();
 }
@@ -104,7 +114,7 @@ class _SendRequestSheetState extends State<_SendRequestSheet> {
               minLines: 2,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
-                labelText: 'Message to @${listing.ownerId}',
+                labelText: 'Message to ${widget.ownerHandle}',
                 hintText: listing.type == ListingType.swap
                     ? 'What can you offer in exchange?'
                     : 'Say hello and how you would use it',

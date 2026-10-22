@@ -19,17 +19,30 @@ class _NewRequestPageState extends State<NewRequestPage> {
   late Set<String> _myHobbies = {...?widget.store.profile?.hobbies.keys};
   late bool _onlyMyHobbies = _myHobbies.isNotEmpty;
 
-  Future<List<Listing>> _load() async => [
-    for (final listing in await widget.client.getListings())
-      if (listing.isAvailable && listing.ownerId != ApiConfig.demoUserId)
-        listing,
-  ];
+  /// Owner id → `@username`, filled in by [_load].
+  var _handles = <String, String>{};
+
+  Future<List<Listing>> _load() async {
+    final listings = [
+      for (final listing in await widget.client.getListings())
+        if (listing.isAvailable && listing.ownerId != ApiConfig.demoUserId)
+          listing,
+    ];
+    _handles = await widget.store.handlesFor({
+      for (final l in listings) l.ownerId,
+    });
+    return listings;
+  }
+
+  String _owner(Listing listing) =>
+      _handles[listing.ownerId] ?? listing.ownerId;
 
   Future<void> _request(Listing listing) async {
     final sent = await showSendRequestSheet(
       context,
       listing,
       client: widget.client,
+      ownerHandle: _owner(listing),
     );
     if (sent != null && mounted) Navigator.of(context).pop(sent);
   }
@@ -108,7 +121,7 @@ class _NewRequestPageState extends State<NewRequestPage> {
                     subtitle: Text(
                       '${HobbyCatalog.nameFor(listing.hobbyId)} · '
                       '${listing.type == ListingType.swap ? 'Swap for ${listing.wantedItem ?? 'an offer'}' : 'Giveaway'}'
-                      ' · @${listing.ownerId}',
+                      ' · ${_owner(listing)}',
                     ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => _request(listing),

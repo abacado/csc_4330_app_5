@@ -16,6 +16,8 @@ import 'store.dart';
 ///   GET    /requests?userId=...
 ///   POST   /requests
 ///   PATCH  /requests/:id
+///   GET    /profiles/:userId
+///   PUT    /profiles/:userId
 class ApiHandler {
   ApiHandler(this.store, {this.log = _noLog});
 
@@ -108,6 +110,21 @@ class ApiHandler {
         final updated = await store.decideRequest(id, status);
         return (HttpStatus.ok, updated.toJson());
 
+      case ['profiles', final userId]:
+        _allow(method, ['GET', 'PUT']);
+        if (userId.length > 64) {
+          throw ValidationException('userId is too long.', field: 'userId');
+        }
+        if (method == 'GET') {
+          return (HttpStatus.ok, store.getProfile(userId).toJson());
+        }
+        final input = ProfileInput.fromJson(await _readJson(request));
+        final (profile, created) = await store.saveProfile(userId, input);
+        return (
+          created ? HttpStatus.created : HttpStatus.ok,
+          profile.toJson(),
+        );
+
       default:
         throw NotFoundException('No route for ${request.uri.path}.');
     }
@@ -150,7 +167,7 @@ class ApiHandler {
   void _addCors(HttpResponse response) {
     response.headers
       ..set('Access-Control-Allow-Origin', '*')
-      ..set('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS')
+      ..set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, OPTIONS')
       ..set('Access-Control-Allow-Headers', 'Content-Type');
   }
 

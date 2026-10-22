@@ -8,6 +8,8 @@ enum ListingStatus { available, completed }
 
 enum RequestStatus { pending, accepted, declined }
 
+enum HobbyLevel { wantToTry, learning, experienced }
+
 T _enumByName<T extends Enum>(List<T> values, Object? name, String field) {
   for (final value in values) {
     if (value.name == name) return value;
@@ -113,4 +115,67 @@ class SwapRequest {
     status: _enumByName(RequestStatus.values, json['status'], 'request status'),
     createdAt: DateTime.parse(json['createdAt'] as String),
   );
+}
+
+/// A user's public profile. [userId] is the identity sent with listings and
+/// requests; [username] is the unique handle shown to other people. Usernames
+/// are compared exactly, so `Ada` and `ada` are different handles.
+class Profile {
+  const Profile({
+    required this.userId,
+    required this.username,
+    required this.displayName,
+    this.bio = '',
+    this.hobbies = const {},
+    this.wishlist = const [],
+  });
+
+  final String userId;
+  final String username;
+  final String displayName;
+  final String bio;
+
+  /// Hobby id → how experienced the user is with it.
+  final Map<String, HobbyLevel> hobbies;
+  final List<String> wishlist;
+
+  Profile copyWith({
+    String? username,
+    String? displayName,
+    String? bio,
+    Map<String, HobbyLevel>? hobbies,
+    List<String>? wishlist,
+  }) => Profile(
+    userId: userId,
+    username: username ?? this.username,
+    displayName: displayName ?? this.displayName,
+    bio: bio ?? this.bio,
+    hobbies: hobbies ?? this.hobbies,
+    wishlist: wishlist ?? this.wishlist,
+  );
+
+  factory Profile.fromJson(Map<String, dynamic> json) => Profile(
+    userId: json['userId'] as String,
+    username: json['username'] as String,
+    displayName: json['displayName'] as String,
+    bio: json['bio'] as String,
+    hobbies: {
+      for (final MapEntry(:key, :value)
+          in (json['hobbies'] as Map<String, dynamic>).entries)
+        key: _enumByName(HobbyLevel.values, value, 'hobby level'),
+    },
+    wishlist: [for (final item in json['wishlist'] as List) item as String],
+  );
+
+  /// The body for `PUT /profiles/:userId`; the server keeps [userId] from
+  /// the path and owns the timestamps.
+  Map<String, Object?> toJson() => {
+    'username': username,
+    'displayName': displayName,
+    'bio': bio,
+    'hobbies': {
+      for (final MapEntry(:key, :value) in hobbies.entries) key: value.name,
+    },
+    'wishlist': wishlist,
+  };
 }

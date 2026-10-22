@@ -6,7 +6,7 @@ import 'hobby_selection_page.dart';
 import 'profile.dart';
 import 'profile_form_page.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key, this.store, this.client});
 
   /// Defaults to the shared [profileStore] and [apiClient]; tests pass fakes.
@@ -14,18 +14,45 @@ class ProfilePage extends StatelessWidget {
   final ApiClient? client;
 
   @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  ProfileStore get _store => widget.store ?? profileStore;
+
+  @override
+  void initState() {
+    super.initState();
+    _store.ensureLoaded();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final store = this.store ?? profileStore;
+    final store = _store;
     return ListenableBuilder(
       listenable: store,
       builder: (context, _) => switch (store.profile) {
+        null when store.isLoading => const Center(
+          child: CircularProgressIndicator(),
+        ),
+        null when store.loadError != null => SectionPage(
+          icon: Icons.cloud_off_outlined,
+          title: 'Could not load your profile',
+          description: store.loadError!.message,
+          children: [
+            FilledButton(
+              onPressed: store.reload,
+              child: const Text('Try again'),
+            ),
+          ],
+        ),
         null => SectionPage(
           icon: Icons.person_outline,
           title: 'Your HobbySwap profile',
           description:
-              'Create a profile so other hobbyists know who they are swapping '
-              'with. Accounts are a demo placeholder for now: you act as '
-              '@${ApiConfig.demoUserId}.',
+              'Create a profile with a unique @username so other hobbyists '
+              'know who they are swapping with. Sign-in is a demo placeholder '
+              'for now.',
           children: [
             FilledButton.icon(
               onPressed: () => _push(context, ProfileFormPage(store: store)),
@@ -37,7 +64,7 @@ class ProfilePage extends StatelessWidget {
         final profile => _ProfileView(
           profile: profile,
           store: store,
-          client: client ?? apiClient,
+          client: widget.client ?? apiClient,
         ),
       },
     );
@@ -54,7 +81,7 @@ class _ProfileView extends StatelessWidget {
     required this.store,
     required this.client,
   });
-  final UserProfile profile;
+  final Profile profile;
   final ProfileStore store;
   final ApiClient client;
 
@@ -81,7 +108,7 @@ class _ProfileView extends StatelessWidget {
                     style: theme.textTheme.headlineSmall,
                   ),
                   Text(
-                    '@${ApiConfig.demoUserId}',
+                    profile.handle,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.primary,
                     ),
@@ -219,7 +246,7 @@ class _MyListingsCardState extends State<_MyListingsCard> {
 
 class _WishlistCard extends StatelessWidget {
   const _WishlistCard({required this.profile, required this.store});
-  final UserProfile profile;
+  final Profile profile;
   final ProfileStore store;
 
   Future<void> _add(BuildContext context) async {
@@ -228,14 +255,29 @@ class _WishlistCard extends StatelessWidget {
       builder: (context) => const _AddWishDialog(),
     );
     if (item == null || !context.mounted) return;
-    if (!store.addWish(item)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('"${item.trim()}" is already on your wishlist.'),
-        ),
-      );
+    if (profile.wishlist.length >= ProfileRules.maxWishlistItems) {
+      _snack(context, 'Your wishlist is full. Remove an item first.');
+      return;
+    }
+    try {
+      if (!await store.addWish(item) && context.mounted) {
+        _snack(context, '"${item.trim()}" is already on your wishlist.');
+      }
+    } on ApiException catch (e) {
+      if (context.mounted) _snack(context, e.message);
     }
   }
+
+  Future<void> _remove(BuildContext context, String item) async {
+    try {
+      await store.removeWish(item);
+    } on ApiException catch (e) {
+      if (context.mounted) _snack(context, e.message);
+    }
+  }
+
+  static void _snack(BuildContext context, String text) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 
   @override
   Widget build(BuildContext context) => Card(
@@ -262,7 +304,7 @@ class _WishlistCard extends StatelessWidget {
                 for (final item in profile.wishlist)
                   InputChip(
                     label: Text(item),
-                    onDeleted: () => store.removeWish(item),
+                    onDeleted: () => _remove(context, item),
                   ),
               ],
             ),
@@ -297,7 +339,7 @@ class _AddWishDialogState extends State<_AddWishDialog> {
     content: TextField(
       controller: _item,
       autofocus: true,
-      maxLength: UserProfile.maxWishLength,
+      maxLength: ProfileRules.maxWishLength,
       textCapitalization: TextCapitalization.sentences,
       decoration: const InputDecoration(
         hintText: 'e.g. Size 4 knitting needles',

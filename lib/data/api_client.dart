@@ -120,6 +120,31 @@ class ApiClient {
     return _parse(() => SwapRequest.fromJson(body as Map<String, dynamic>));
   }
 
+  /// [userId]'s profile, or null if they have not created one yet.
+  Future<Profile?> getProfile(String userId) async {
+    final Object? body;
+    try {
+      body = await _send('GET', '/profiles/$userId');
+    } on ApiException catch (e) {
+      if (e.statusCode == 404) return null;
+      rethrow;
+    }
+    return _parse(() => Profile.fromJson(body as Map<String, dynamic>));
+  }
+
+  /// Creates or replaces [profile] and returns it as stored.
+  ///
+  /// Throws an [ApiException] with `field == 'username'` and status 409 when
+  /// another user already has that exact username.
+  Future<Profile> saveProfile(Profile profile) async {
+    final body = await _send(
+      'PUT',
+      '/profiles/${profile.userId}',
+      body: profile.toJson(),
+    );
+    return _parse(() => Profile.fromJson(body as Map<String, dynamic>));
+  }
+
   void close() => _http.close();
 
   Future<Object?> _send(

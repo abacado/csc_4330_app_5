@@ -41,13 +41,38 @@ Map<String, Object?> requestJson({
   'updatedAt': '2026-10-21T15:05:00.000Z',
 };
 
+Map<String, Object?> profileJson({
+  required String userId,
+  required String username,
+  String displayName = 'Someone',
+  String bio = '',
+  Map<String, String> hobbies = const {},
+  List<String> wishlist = const [],
+}) => {
+  'userId': userId,
+  'username': username,
+  'displayName': displayName,
+  'bio': bio,
+  'hobbies': hobbies,
+  'wishlist': wishlist,
+  'createdAt': '2026-10-21T15:00:00.000Z',
+  'updatedAt': '2026-10-21T15:00:00.000Z',
+};
+
 /// A tiny in-memory stand-in for the HobbySwap server.
 class FakeServer {
-  FakeServer({List<Map<String, Object?>>? listings, this.requests = const []})
-    : listings = listings ?? [];
+  FakeServer({
+    List<Map<String, Object?>>? listings,
+    this.requests = const [],
+    Map<String, Map<String, Object?>>? profiles,
+  }) : listings = listings ?? [],
+       profiles = profiles ?? {};
 
   final List<Map<String, Object?>> listings;
   List<Map<String, Object?>> requests;
+
+  /// User id → profile JSON, as the server stores it.
+  final Map<String, Map<String, Object?>> profiles;
   final sent = <http.Request>[];
 
   late final client = ApiClient(
@@ -84,6 +109,33 @@ class FakeServer {
             r['id'] == id ? {...r, 'status': decision} : r,
         ];
         body = requests.firstWhere((r) => r['id'] == id);
+      case ('GET', final p) when p.startsWith('/profiles/'):
+        final profile = profiles[p.split('/').last];
+        body = profile ?? {'error': 'No profile yet.'};
+        status = profile == null ? 404 : 200;
+      case ('PUT', final p) when p.startsWith('/profiles/'):
+        final userId = p.split('/').last;
+        final input = jsonDecode(request.body) as Map<String, Object?>;
+        final taken = profiles.entries.any(
+          (e) => e.key != userId && e.value['username'] == input['username'],
+        );
+        if (taken) {
+          body = {
+            'error': 'The username @${input['username']} is already taken.',
+            'field': 'username',
+          };
+          status = 409;
+        } else {
+          status = profiles.containsKey(userId) ? 200 : 201;
+          body = profiles[userId] = profileJson(
+            userId: userId,
+            username: input['username'] as String,
+            displayName: input['displayName'] as String,
+            bio: input['bio'] as String? ?? '',
+            hobbies: (input['hobbies'] as Map?)?.cast<String, String>() ?? {},
+            wishlist: (input['wishlist'] as List?)?.cast<String>() ?? [],
+          );
+        }
       default:
         body = {'error': 'No route'};
         status = 404;

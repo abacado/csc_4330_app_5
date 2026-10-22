@@ -27,8 +27,13 @@ void main() {
   }
 
   setUp(() {
-    store = ProfileStore();
     server = FakeServer(
+      profiles: {
+        'demo-friend': profileJson(
+          userId: 'demo-friend',
+          username: 'Yarn.Queen',
+        ),
+      },
       listings: [
         listingJson(id: 'my_paint', ownerId: me, title: 'My paints'),
         listingJson(
@@ -60,6 +65,7 @@ void main() {
         ),
       ],
     );
+    store = ProfileStore(client: server.client, userId: me);
   });
 
   testWidgets('shows received and sent requests', (tester) async {
@@ -68,14 +74,14 @@ void main() {
     expect(find.text('Received (1 new)'), findsOneWidget);
     expect(find.text('My paints'), findsOneWidget);
     expect(find.text('Can I have your paints?'), findsOneWidget);
-    expect(find.textContaining('From @demo-friend'), findsOneWidget);
+    expect(find.textContaining('From @Yarn.Queen'), findsOneWidget);
     expect(find.text('Seeds please'), findsNothing);
 
     await tester.tap(find.text('Sent (1)'));
     await tester.pumpAndSettle();
     expect(find.text('Seeds please'), findsOneWidget);
     expect(find.text('Declined'), findsOneWidget);
-    expect(find.textContaining('To @demo-friend'), findsOneWidget);
+    expect(find.textContaining('To @Yarn.Queen'), findsOneWidget);
   });
 
   testWidgets('accepts an incoming request', (tester) async {
@@ -92,13 +98,17 @@ void main() {
   });
 
   testWidgets('sends a request for a listing in my hobbies', (tester) async {
-    store.saveDetails(displayName: 'Ada', bio: '');
-    store.setHobbies({'crochet': HobbyLevel.learning});
+    server.profiles[me] = profileJson(
+      userId: me,
+      username: 'ada',
+      hobbies: {'crochet': 'learning'},
+    );
     await pumpMessages(tester);
 
     await tester.tap(find.text('New swap request'));
     await tester.pumpAndSettle();
     expect(find.text('Wool yarn bundle'), findsOneWidget);
+    expect(find.textContaining('@Yarn.Queen'), findsOneWidget);
     expect(find.text('Tomato seeds'), findsNothing, reason: 'not my hobby');
     expect(find.text('My paints'), findsNothing, reason: 'my own listing');
 
@@ -108,6 +118,7 @@ void main() {
 
     await tester.tap(find.text('Wool yarn bundle'));
     await tester.pumpAndSettle();
+    expect(find.text('Message to @Yarn.Queen'), findsOneWidget);
     await tester.tap(find.text('Send request'));
     await tester.pumpAndSettle();
     expect(find.text('Write a short message.'), findsOneWidget);

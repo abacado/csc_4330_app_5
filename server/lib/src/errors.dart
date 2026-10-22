@@ -34,11 +34,21 @@ class NotFoundException extends ApiError {
 }
 
 /// 409: the request is valid but conflicts with the current state.
+///
+/// [field] names the input that caused it (for example a taken `username`),
+/// so the app can show the error next to that field.
 class ConflictException extends ApiError {
-  ConflictException(super.message);
+  ConflictException(super.message, {this.field});
+  final String? field;
 
   @override
   int get statusCode => 409;
+
+  @override
+  Map<String, Object?> toJson() => {
+        'error': message,
+        if (field != null) 'field': field,
+      };
 }
 
 /// 405: the path exists but does not support this HTTP method.

@@ -16,12 +16,26 @@ class MessagesPage extends StatefulWidget {
   State<MessagesPage> createState() => _MessagesPageState();
 }
 
-typedef _Inbox = ({List<SwapRequest> requests, Map<String, Listing> listings});
+typedef _Inbox = ({
+  List<SwapRequest> requests,
+  Map<String, Listing> listings,
+
+  /// User id → `@username` (or the id for users without a profile).
+  Map<String, String> handles,
+});
 
 class _MessagesPageState extends State<MessagesPage> {
   ApiClient get _client => widget.client ?? apiClient;
+  ProfileStore get _store => widget.store ?? profileStore;
   late Future<_Inbox> _inbox = _load();
   bool _showSent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // The new-request page filters by the user's hobbies.
+    _store.ensureLoaded();
+  }
 
   /// Request ids with an accept/decline call in flight.
   final _deciding = <String>{};
@@ -30,8 +44,14 @@ class _MessagesPageState extends State<MessagesPage> {
   /// itself rather than a combined error.
   Future<_Inbox> _load() async {
     final requests = await _client.getRequests(userId: ApiConfig.demoUserId);
-    final listings = await _client.getListings();
-    return (requests: requests, listings: {for (final l in listings) l.id: l});
+    final listings = {for (final l in await _client.getListings()) l.id: l};
+    final handles = await _store.handlesFor({
+      for (final r in requests) ...[
+        r.requesterId,
+        ?listings[r.listingId]?.ownerId,
+      ],
+    });
+    return (requests: requests, listings: listings, handles: handles);
   }
 
   Future<void> _refresh() {
@@ -44,10 +64,7 @@ class _MessagesPageState extends State<MessagesPage> {
   Future<void> _newRequest() async {
     final sent = await Navigator.of(context).push<SwapRequest>(
       MaterialPageRoute(
-        builder: (context) => NewRequestPage(
-          client: _client,
-          store: widget.store ?? profileStore,
-        ),
+        builder: (context) => NewRequestPage(client: _client, store: _store),
       ),
     );
     if (sent == null || !mounted) return;
@@ -186,6 +203,10 @@ class _MessagesPageState extends State<MessagesPage> {
           request: request,
           listing: inbox.listings[request.listingId],
           outgoing: _showSent,
+          otherParty: _showSent
+              ? inbox.handles[inbox.listings[request.listingId]?.ownerId] ??
+                    'the listing owner'
+              : inbox.handles[request.requesterId] ?? request.requesterId,
           deciding: _deciding.contains(request.id),
           onAccept: () => _decide(request, accept: true),
           onDecline: () => _decide(request, accept: false),
@@ -199,6 +220,7 @@ class _RequestCard extends StatelessWidget {
     required this.request,
     required this.listing,
     required this.outgoing,
+    required this.otherParty,
     required this.deciding,
     required this.onAccept,
     required this.onDecline,
@@ -206,6 +228,9 @@ class _RequestCard extends StatelessWidget {
   final SwapRequest request;
   final Listing? listing;
   final bool outgoing;
+
+  /// The other person's `@username`.
+  final String otherParty;
   final bool deciding;
   final VoidCallback onAccept;
   final VoidCallback onDecline;
@@ -214,9 +239,7 @@ class _RequestCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final listing = this.listing;
-    final who = outgoing
-        ? 'To @${listing?.ownerId ?? 'listing owner'}'
-        : 'From @${request.requesterId}';
+    final who = outgoing ? 'To $otherParty' : 'From $otherParty';
     final date = MaterialLocalizations.of(context)
         .formatShortDate(request.createdAt.toLocal());
     return Card(
