@@ -44,3 +44,19 @@ error and retry button if the server is unavailable. There is no distance filter
 
 See `TASKS.md` for ownership and remaining integration work, and `DEMO.md` for
 local setup and the recording outline.
+
+## Updating GitHub Pages
+
+Pages publishes the generated files in `docs/` on `main`. Merging Dart source
+changes or building the Android APK does not update those web files. After merging
+features into main, run this from the project terminal:
+
+```powershell
+powershell -File tool/update_pages.ps1
+```
+
+Review and commit the updated `docs/` files, then push main. Wait for the Pages
+deployment to finish before refreshing https://abacado.github.io/csc_4330_app_5/.
+The website's server features still require a reachable server; Pages hosts only
+the interface. Use `--dart-define=API_BASE_URL=https://YOUR_SERVER` in the web build
+command when a public HTTPS server is available.
