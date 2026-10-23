@@ -4,6 +4,7 @@ import '../../data/data.dart';
 import '../profile/hobby_catalog.dart';
 import 'listing_detail_page.dart';
 import 'listing_photo.dart';
+import 'listing_badge.dart';
 
 class ListingCard extends StatelessWidget {
   const ListingCard({super.key, required this.listing, this.client});
@@ -43,11 +44,7 @@ class ListingCard extends StatelessWidget {
                   spacing: 8,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Chip(
-                      label: Text(
-                        listing.type == ListingType.swap ? 'Swap' : 'Giveaway',
-                      ),
-                    ),
+                    ListingBadge(type: listing.type),
                     if (listing.area?.isNotEmpty == true) Text(listing.area!),
                   ],
                 ),

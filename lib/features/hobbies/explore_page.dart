@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../shared/section_page.dart';
+import '../../shared/hobby_icon.dart';
 import '../profile/hobby_catalog.dart' as shared;
 import 'hobby_catalog.dart';
 import 'hobby_detail_page.dart';
@@ -82,8 +83,10 @@ class _ExplorePageState extends State<ExplorePage> {
   }
 
   Widget _tile(Hobby hobby, String subtitle) => Card(
+    margin: const EdgeInsets.only(bottom: 12),
     child: ListTile(
-      leading: Icon(hobby.icon),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      leading: HobbyIcon(id: hobby.id, icon: hobby.icon),
       title: Text(hobby.name),
       subtitle: Text(subtitle),
       trailing: const Icon(Icons.chevron_right),

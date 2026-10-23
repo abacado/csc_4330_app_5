@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'hobby_icon.dart';
+
 class SectionPage extends StatelessWidget {
   const SectionPage({
     super.key,
@@ -16,7 +18,10 @@ class SectionPage extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(24),
     children: [
-      Icon(icon, size: 48, color: Theme.of(context).colorScheme.primary),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: HobbyIcon(id: title, icon: icon, size: 60),
+      ),
       const SizedBox(height: 20),
       Text(title, style: Theme.of(context).textTheme.headlineMedium),
       const SizedBox(height: 12),
