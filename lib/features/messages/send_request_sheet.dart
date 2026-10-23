@@ -91,7 +91,12 @@ class _SendRequestSheetState extends State<_SendRequestSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Request a swap', style: theme.textTheme.headlineSmall),
+            Text(
+              listing.type == ListingType.swap
+                  ? 'Request a swap'
+                  : 'Request this item',
+              style: theme.textTheme.headlineSmall,
+            ),
             const SizedBox(height: 12),
             ListTile(
               contentPadding: EdgeInsets.zero,

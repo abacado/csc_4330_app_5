@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/data.dart';
-import '../hobbies/hobby_catalog.dart';
+import '../listings/listing_card.dart';
 
 /// Optional client lets tests use the same UI without a running server.
 class AvailableListings extends StatefulWidget {
@@ -100,49 +100,7 @@ class _AvailableListingsState extends State<AvailableListings> {
           return Column(
             children: [
               for (final listing in listings)
-                Card(
-                  child: ListTile(
-                    leading: Icon(
-                      hobbyById(listing.hobbyId)?.icon ??
-                          Icons.inventory_2_outlined,
-                    ),
-                    title: Text(listing.title),
-                    subtitle: Text(
-                      '${hobbyById(listing.hobbyId)?.name ?? listing.hobbyId} · ${listing.type == ListingType.swap ? 'Swap' : 'Giveaway'} · ${listing.condition}',
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => showDialog<void>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text(listing.title),
-                        content: SingleChildScrollView(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(listing.description),
-                              const SizedBox(height: 12),
-                              Text('Condition: ${listing.condition}'),
-                              Text(
-                                'Offer: ${listing.type == ListingType.swap ? 'Swap' : 'Giveaway'}',
-                              ),
-                              if (listing.wantedItem?.isNotEmpty == true)
-                                Text('Looking for: ${listing.wantedItem}'),
-                              const SizedBox(height: 12),
-                              const Text('Exchange requests are coming soon.'),
-                            ],
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Close'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                ListingCard(listing: listing, client: widget.client),
             ],
           );
         },

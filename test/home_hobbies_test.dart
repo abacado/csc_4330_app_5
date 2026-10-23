@@ -89,8 +89,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('available paints'), findsOneWidget);
       expect(find.text('completed paints'), findsNothing);
+      await tester.ensureVisible(find.text('available paints'));
       await tester.tap(find.text('available paints'));
       await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Looking for: Yarn'),
+        300,
+        scrollable: find.byType(Scrollable).last,
+      );
       expect(find.text('Looking for: Yarn'), findsOneWidget);
     },
   );

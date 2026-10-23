@@ -29,6 +29,8 @@ class Listing {
     required this.status,
     required this.createdAt,
     this.wantedItem,
+    this.photoDataUrl,
+    this.area,
   });
 
   final String id;
@@ -39,6 +41,8 @@ class Listing {
   final String condition;
   final ListingType type;
   final String? wantedItem;
+  final String? photoDataUrl;
+  final String? area;
   final ListingStatus status;
   final DateTime createdAt;
 
@@ -53,6 +57,8 @@ class Listing {
     condition: json['condition'] as String,
     type: _enumByName(ListingType.values, json['type'], 'listing type'),
     wantedItem: json['wantedItem'] as String?,
+    photoDataUrl: json['photoDataUrl'] as String?,
+    area: json['area'] as String?,
     status: _enumByName(ListingStatus.values, json['status'], 'listing status'),
     createdAt: DateTime.parse(json['createdAt'] as String),
   );
@@ -67,6 +73,8 @@ class NewListing {
     required this.condition,
     required this.type,
     this.wantedItem,
+    this.photoDataUrl,
+    this.area,
   });
 
   final String hobbyId;
@@ -75,6 +83,8 @@ class NewListing {
   final String condition;
   final ListingType type;
   final String? wantedItem;
+  final String? photoDataUrl;
+  final String? area;
 
   Map<String, Object?> toJson({required String ownerId}) => {
     'ownerId': ownerId,
@@ -84,6 +94,8 @@ class NewListing {
     'condition': condition,
     'type': type.name,
     if (wantedItem != null) 'wantedItem': wantedItem,
+    if (photoDataUrl != null) 'photoDataUrl': photoDataUrl,
+    if (area != null) 'area': area,
   };
 }
 
