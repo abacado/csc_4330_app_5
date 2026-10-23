@@ -4,6 +4,8 @@
 /// `status`, `createdAt`, and `updatedAt`; clients never set them.
 library;
 
+import 'dart:convert';
+
 import 'errors.dart';
 
 const listingTypes = {'swap', 'giveaway'};
@@ -30,6 +32,8 @@ class Listing implements StoredRecord {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
+    this.area,
+    this.photoDataUrl,
   });
 
   @override
@@ -41,6 +45,12 @@ class Listing implements StoredRecord {
   final String condition;
   final String type;
   final String? wantedItem;
+
+  /// City or area the owner typed, or null.
+  final String? area;
+
+  /// One validated `data:image/...;base64,...` photo, or null.
+  final String? photoDataUrl;
   String status;
   @override
   final DateTime createdAt;
@@ -55,11 +65,14 @@ class Listing implements StoredRecord {
         'condition': condition,
         'type': type,
         'wantedItem': wantedItem,
+        'area': area,
+        'photoDataUrl': photoDataUrl,
         'status': status,
         'createdAt': createdAt.toUtc().toIso8601String(),
         'updatedAt': updatedAt.toUtc().toIso8601String(),
       };
 
+  /// Records saved before photos and areas existed load with both as null.
   factory Listing.fromJson(Map<String, Object?> json) => Listing(
         id: json['id'] as String,
         ownerId: json['ownerId'] as String,
@@ -69,6 +82,8 @@ class Listing implements StoredRecord {
         condition: json['condition'] as String,
         type: json['type'] as String,
         wantedItem: json['wantedItem'] as String?,
+        area: json['area'] as String?,
+        photoDataUrl: json['photoDataUrl'] as String?,
         status: json['status'] as String,
         createdAt: DateTime.parse(json['createdAt'] as String),
         updatedAt: DateTime.parse(json['updatedAt'] as String),
@@ -270,6 +285,8 @@ class NewListing {
     required this.condition,
     required this.type,
     required this.wantedItem,
+    required this.area,
+    required this.photoDataUrl,
   });
 
   final String ownerId;
@@ -279,6 +296,8 @@ class NewListing {
   final String condition;
   final String type;
   final String? wantedItem;
+  final String? area;
+  final String? photoDataUrl;
 
   /// Parses and validates a request body. Throws [ValidationException].
   factory NewListing.fromJson(Object? body) {
@@ -298,6 +317,8 @@ class NewListing {
       condition: _requireString(json, 'condition', maxLength: 40),
       type: type,
       wantedItem: _optionalString(json, 'wantedItem', maxLength: 120),
+      area: _optionalString(json, 'area', maxLength: 80),
+      photoDataUrl: _optionalPhoto(json, 'photoDataUrl'),
     );
   }
 }
@@ -376,4 +397,70 @@ String _checkLength(String value, String field, int maxLength) {
     );
   }
   return value;
+}
+
+/// Largest photo the server stores, measured after base64 decoding.
+const maxPhotoBytes = 512 * 1024;
+
+final _photoDataUrl = RegExp(
+  r'^data:(image/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$',
+);
+
+/// Accepts only a base64 `data:` URL holding a JPEG, PNG, or WebP image whose
+/// bytes really are that format. Other URL schemes are rejected.
+String? _optionalPhoto(Map<String, Object?> json, String field) {
+  final value = json[field];
+  if (value == null) return null;
+  if (value is! String) {
+    throw ValidationException('$field must be a string.', field: field);
+  }
+  if (value.isEmpty) return null;
+  final match = _photoDataUrl.firstMatch(value);
+  if (match == null) {
+    throw ValidationException(
+      'The photo must be a JPG, PNG, or WebP image.',
+      field: field,
+    );
+  }
+  final List<int> bytes;
+  try {
+    bytes = base64.decode(match.group(2)!);
+  } on FormatException {
+    throw ValidationException('The photo could not be read.', field: field);
+  }
+  if (bytes.length > maxPhotoBytes) {
+    throw ValidationException(
+      'The photo must be at most 512 KB.',
+      field: field,
+    );
+  }
+  if (_imageType(bytes) != match.group(1)) {
+    throw ValidationException(
+      'The photo does not match its file type.',
+      field: field,
+    );
+  }
+  return value;
+}
+
+/// Identifies an image by its first bytes rather than trusting its label.
+String? _imageType(List<int> b) {
+  bool startsWith(List<int> sig, [int offset = 0]) {
+    if (b.length < offset + sig.length) return false;
+    for (var i = 0; i < sig.length; i++) {
+      if (b[offset + i] != sig[i]) return false;
+    }
+    return true;
+  }
+
+  if (startsWith(const [0xFF, 0xD8, 0xFF])) return 'image/jpeg';
+  if (startsWith(const [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])) {
+    return 'image/png';
+  }
+  if (startsWith(const [0x52, 0x49, 0x46, 0x46]) && // RIFF
+      startsWith(const [0x57, 0x45, 0x42, 0x50], 8)) {
+    // WEBP
+    return 'image/webp';
+  }
+  return null;
 }

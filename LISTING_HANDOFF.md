@@ -11,7 +11,16 @@ Fields: ownerId, hobbyId, title (80), description (1000), condition (40),
 type (swap/giveaway), wantedItem (120; required by the form for swaps).
 On failure the draft stays intact. After posting, use Home's Refresh button.
 
-## Required server additions
+## Server additions (done)
+
+The server now validates, stores, and returns `area` and `photoDataUrl`, and
+the app posts them by default (`LISTING_MEDIA_ENABLED` defaults to `true`;
+pass `--dart-define=LISTING_MEDIA_ENABLED=false` only against an older
+server). Home also reloads listings by itself after a post and whenever the
+Home tab is opened again, so Refresh is no longer required. Tests:
+`server/test/listing_media_test.dart` and `test/home_reload_test.dart`.
+
+The original request, for reference:
 
 Optional fields in NewListing / Listing:
 
@@ -26,8 +35,8 @@ server too; do not trust client validation. Do not allow arbitrary URL schemes.
 Increase the request body limit from the current 64 KiB to 768 KiB (512 KiB
 becomes about 683 KiB after base64 encoding). Keep a finite limit.
 
-Until that work is complete, the default form allows photo/area preview but
-blocks posting with either field. It does not silently discard them. Plain
+Before that work was complete, the default form allowed photo/area preview but
+blocked posting with either field. It does not silently discard them. Plain
 text listings still work. Once implemented and tested, enable with:
 
 ```powershell

@@ -9,8 +9,13 @@ import '../profile/hobby_catalog.dart';
 import 'listing_detail_page.dart';
 import 'listing_photo.dart';
 
-/// Enable only after the server persists and returns photoDataUrl and area.
-const listingMediaEnabled = bool.fromEnvironment('LISTING_MEDIA_ENABLED');
+/// The server stores and returns photoDataUrl and area, so posting them is on.
+/// Build with --dart-define=LISTING_MEDIA_ENABLED=false against an older
+/// server that drops them.
+const listingMediaEnabled = bool.fromEnvironment(
+  'LISTING_MEDIA_ENABLED',
+  defaultValue: true,
+);
 
 class PostPage extends StatefulWidget {
   const PostPage({
@@ -185,7 +190,7 @@ class _PostPageState extends State<PostPage> {
         _type = ListingType.swap;
         _notice = missingMedia
             ? 'Listing posted, but the server did not save its photo or area. Contact your team before posting another.'
-            : 'Listing posted! Find it on Home using Refresh.';
+            : 'Listing posted! It now appears on Home.';
       });
       widget.onPosted?.call();
       WidgetsBinding.instance.addPostFrameCallback((_) {

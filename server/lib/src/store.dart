@@ -93,6 +93,8 @@ class Store {
       condition: input.condition,
       type: input.type,
       wantedItem: input.wantedItem,
+      area: input.area,
+      photoDataUrl: input.photoDataUrl,
       status: 'available',
       createdAt: now,
       updatedAt: now,
