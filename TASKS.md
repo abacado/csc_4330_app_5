@@ -13,14 +13,17 @@ and interactive starter checklists. Checklist progress lasts for the current app
 session. Home loads available listings from the shared API and supports refresh,
 details, empty results, and retry after errors. Distance filtering is not implemented.
 The server and API client are merged, with persistent listings/requests and tests.
-Post, Profile, and Messages still need their assigned feature implementations.
+Profile and Messages are included from the teammate's branch. Abigail's listing
+form, photo preview, listing cards, and detail/request page are implemented locally
+on `codex/listings-ui`. Text-only posting uses the existing API. Publishing photos
+and city/area awaits the server additions in `LISTING_HANDOFF.md`.
 
 ## Four owners
 
 | Owner | Scope | Main files | Done when |
 | --- | --- | --- | --- |
 | Student 1 (Abigail) | Home, hobby browsing/details, starter checklists, final integration | `lib/features/home/home_page.dart`, `lib/features/hobbies/` | A user can browse hobbies and view a starter checklist; all features work together. |
-| Student 2 | Listing form, listing cards/details, validation, connect listing UI to server | `lib/features/listings/` | A valid swap/giveaway can be posted and reloaded from the server; loading and error states are visible. |
+| Abigail (reassigned) | Listing form, listing cards/details, validation; server teammate handles media persistence | `lib/features/listings/` | Text swaps/giveaways post through the existing API; photo/area publishing follows server handoff. |
 | Student 3 | Placeholder account/profile, local hobby selections, exchange requests UI | `lib/features/profile/`, `lib/features/messages/` | A demo user can view a profile and send/view swap requests. Full chat is optional. |
 | Student 4 | Server, persistent storage, API client, server tests, automated build check | `server/`, `lib/data/`, `.github/workflows/` | Listings and requests survive a server restart; another device can connect; CI produces an APK. |
 
