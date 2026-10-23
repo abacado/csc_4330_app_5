@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../profile/hobby_catalog.dart' as shared;
+import 'hobby_guides.dart';
+
 class Hobby {
   const Hobby(
     this.id,
@@ -17,7 +20,29 @@ class Hobby {
   final List<String> starterItems;
 }
 
-const hobbyCatalog = [
+/// Every hobby in the shared catalog, in its order, each with a beginner
+/// guide: the hand-written guides below for the original six, and
+/// [hobbyGuides] for the rest. Hobbies without a guide are left out.
+final List<Hobby> hobbyCatalog = [
+  for (final h in shared.HobbyCatalog.all)
+    ?(_originalById[h.id] ?? _fromGuide(h)),
+];
+
+final _originalById = {for (final h in _originalHobbies) h.id: h};
+
+Hobby? _fromGuide(shared.Hobby hobby) => switch (hobbyGuides[hobby.id]) {
+  final guide? => Hobby(
+    hobby.id,
+    hobby.name,
+    hobby.icon,
+    guide.description,
+    guide.firstProject,
+    guide.starterItems,
+  ),
+  null => null,
+};
+
+const _originalHobbies = [
   Hobby(
     'painting',
     'Painting',
