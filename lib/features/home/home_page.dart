@@ -4,9 +4,17 @@ import '../../shared/section_page.dart';
 import 'available_listings.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key, required this.onExplore, required this.onPost});
+  const HomePage({
+    super.key,
+    required this.onExplore,
+    required this.onPost,
+    this.listingsReload,
+  });
   final VoidCallback onExplore;
   final VoidCallback onPost;
+
+  /// Fires when the listings should be fetched from the server again.
+  final Listenable? listingsReload;
   @override
   Widget build(BuildContext context) => SectionPage(
     icon: Icons.spa_outlined,
@@ -22,7 +30,7 @@ class HomePage extends StatelessWidget {
         label: const Text('Share some supplies'),
       ),
       const SizedBox(height: 28),
-      const AvailableListings(),
+      AvailableListings(reloadSignal: listingsReload),
     ],
   );
 }

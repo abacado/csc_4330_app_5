@@ -69,7 +69,7 @@ The server sets `id`, `status`, `createdAt`, and `updatedAt`.
 | GET | `/health` | | `200 {"status":"ok"}` |
 | GET | `/listings` | `?hobbyId=painting` (optional) | `200` list, newest first |
 | GET | `/listings/:id` | | `200` listing |
-| POST | `/listings` | `ownerId`, `hobbyId`, `title`, `description`, `condition`, `type` (`swap`/`giveaway`), `wantedItem` (optional) | `201` listing |
+| POST | `/listings` | `ownerId`, `hobbyId`, `title`, `description`, `condition`, `type` (`swap`/`giveaway`), `wantedItem`, `area`, `photoDataUrl` (last three optional) | `201` listing |
 | GET | `/requests` | `?userId=demo-user` (required) | `200` requests the user sent or received |
 | POST | `/requests` | `listingId`, `requesterId`, `message` | `201` request (`pending`) |
 | PATCH | `/requests/:id` | `{"status": "accepted"}` or `"declined"` | `200` request |
@@ -90,7 +90,12 @@ Rules the server enforces:
   any other symbols are allowed. Hobby levels are `wantToTry`, `learning`, or
   `experienced`.
 
-Limits: title 80 characters, description 1000, condition 40, wanted item 120,
+- `photoDataUrl` must be a `data:image/jpeg|png|webp;base64,...` URL whose
+  bytes really are that image type, at most 512 KB once decoded. Any other
+  URL scheme is rejected with `"field": "photoDataUrl"`. Listings saved
+  before photos existed return `photoDataUrl` and `area` as `null`.
+
+Limits: area 80 characters, request body 768 KB, title 80 characters, description 1000, condition 40, wanted item 120,
 message 500, display name 40, bio 160, wishlist 50 items of 60 characters.
 
 In the app, call these through `apiClient` from `lib/data/data.dart` instead

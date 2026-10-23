@@ -4,9 +4,13 @@ import '../../data/data.dart';
 import '../listings/listing_card.dart';
 
 /// Optional client lets tests use the same UI without a running server.
+///
+/// [reloadSignal] reloads the list from the server whenever it fires, for
+/// example after a new listing is posted or when Home is shown again.
 class AvailableListings extends StatefulWidget {
-  const AvailableListings({super.key, this.client});
+  const AvailableListings({super.key, this.client, this.reloadSignal});
   final ApiClient? client;
+  final Listenable? reloadSignal;
   @override
   State<AvailableListings> createState() => _AvailableListingsState();
 }
@@ -17,6 +21,22 @@ class _AvailableListingsState extends State<AvailableListings> {
   void initState() {
     super.initState();
     _listings = _load();
+    widget.reloadSignal?.addListener(_refresh);
+  }
+
+  @override
+  void didUpdateWidget(AvailableListings oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.reloadSignal != widget.reloadSignal) {
+      oldWidget.reloadSignal?.removeListener(_refresh);
+      widget.reloadSignal?.addListener(_refresh);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.reloadSignal?.removeListener(_refresh);
+    super.dispose();
   }
 
   Future<List<Listing>> _load() async =>
@@ -24,6 +44,7 @@ class _AvailableListingsState extends State<AvailableListings> {
           .where((item) => item.isAvailable)
           .toList();
   void _refresh() {
+    if (!mounted) return;
     final next = _load();
     setState(() {
       _listings = next;

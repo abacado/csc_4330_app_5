@@ -24,7 +24,9 @@ class ApiHandler {
   final Store store;
   final void Function(String line) log;
 
-  static const maxBodyBytes = 64 * 1024;
+  /// Room for one 512 KiB photo after base64 encoding (about 683 KiB) plus
+  /// the listing's text fields.
+  static const maxBodyBytes = 768 * 1024;
 
   /// Starts listening. Use host `0.0.0.0` so phones on the same network can
   /// connect, and port 0 to pick a free port (handy in tests).

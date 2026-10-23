@@ -68,7 +68,7 @@ void main() {
       await tapText(tester, 'Post listing');
       expect(posts, 1);
       expect(
-        find.text('Listing posted! Find it on Home using Refresh.'),
+        find.text('Listing posted! It now appears on Home.'),
         findsOneWidget,
       );
       expect(find.text('Paint set'), findsNothing);
@@ -90,7 +90,7 @@ void main() {
       addTearDown(client.close);
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(body: PostPage(client: client)),
+          home: Scaffold(body: PostPage(client: client, mediaEnabled: false)),
         ),
       );
       await fill(tester);
@@ -119,6 +119,52 @@ void main() {
       expect(find.text('Paint set'), findsOneWidget);
     },
   );
+
+  testWidgets('With media enabled, the area is posted and saved', (
+    tester,
+  ) async {
+    Map<String, dynamic>? sent;
+    var posted = 0;
+    final client = ApiClient(
+      baseUrl: Uri.parse('http://test'),
+      httpClient: MockClient((request) async {
+        sent = jsonDecode(request.body) as Map<String, dynamic>;
+        return http.Response(
+          jsonEncode({
+            ...sent!,
+            'id': 'new',
+            'status': 'available',
+            'createdAt': '2026-10-23T12:00:00Z',
+          }),
+          201,
+        );
+      }),
+    );
+    addTearDown(client.close);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PostPage(
+            client: client,
+            mediaEnabled: true,
+            onPosted: () => posted++,
+          ),
+        ),
+      ),
+    );
+    await fill(tester);
+    await tapText(tester, 'Giveaway');
+    final area = find.widgetWithText(TextFormField, 'City / area (optional)');
+    await tester.ensureVisible(area);
+    await tester.enterText(area, 'Baton Rouge');
+    await tapText(tester, 'Post listing');
+    expect(sent?['area'], 'Baton Rouge');
+    expect(posted, 1);
+    expect(
+      find.text('Listing posted! It now appears on Home.'),
+      findsOneWidget,
+    );
+  });
 
   testWidgets(
     'Canceled picker keeps fallback and API failure preserves fields',
