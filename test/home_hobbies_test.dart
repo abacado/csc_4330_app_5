@@ -18,6 +18,7 @@ void main() {
     await tester.tap(find.text('Painting'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Watercolor paints'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Watercolor paints'));
     await tester.pumpAndSettle();
     expect(find.text('1 of 5 ready'), findsOneWidget);
