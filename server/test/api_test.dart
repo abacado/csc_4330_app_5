@@ -205,6 +205,62 @@ void main() {
     expect(response.headers.value('access-control-allow-origin'), '*');
   });
 
+  test('profiles: create, read, update, and unique usernames', () async {
+    const body = {
+      'username': 'Ada',
+      'displayName': 'Ada Lovelace',
+      'hobbies': {'crochet': 'learning'},
+    };
+    final (missingStatus, _) = await server.send('GET', '/profiles/demo-user');
+    expect(missingStatus, 404);
+
+    final (createdStatus, created) = await server.send(
+      'PUT',
+      '/profiles/demo-user',
+      body: body,
+    );
+    expect(createdStatus, 201);
+    expect(created, containsPair('username', 'Ada'));
+    expect(created, containsPair('bio', ''));
+    expect(created, containsPair('wishlist', <Object?>[]));
+    await expectResponse(
+      server.send('GET', '/profiles/demo-user'),
+      200,
+      created,
+    );
+
+    final (updatedStatus, _) = await server.send(
+      'PUT',
+      '/profiles/demo-user',
+      body: {...body, 'bio': 'Hooks for days'},
+    );
+    expect(updatedStatus, 200);
+
+    await expectResponse(
+      server.send('PUT', '/profiles/demo-friend', body: body),
+      409,
+      {'error': 'The username @Ada is already taken.', 'field': 'username'},
+    );
+    final (otherCaseStatus, _) = await server.send(
+      'PUT',
+      '/profiles/demo-friend',
+      body: {...body, 'username': 'ada'},
+    );
+    expect(otherCaseStatus, 201);
+
+    await expectResponse(
+      server.send(
+        'PUT',
+        '/profiles/demo-friend',
+        body: {...body, 'username': 'a d a'},
+      ),
+      400,
+      {'error': 'username cannot contain spaces.', 'field': 'username'},
+    );
+    final (methodStatus, _) = await server.send('POST', '/profiles/demo-user');
+    expect(methodStatus, 405);
+  });
+
   test('listings and requests survive a server restart', () async {
     final (_, listing) = await server.send(
       'POST',

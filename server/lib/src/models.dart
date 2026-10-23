@@ -9,6 +9,7 @@ import 'errors.dart';
 const listingTypes = {'swap', 'giveaway'};
 const listingStatuses = {'available', 'completed'};
 const requestStatuses = {'pending', 'accepted', 'declined'};
+const hobbyLevels = {'wantToTry', 'learning', 'experienced'};
 
 /// Fields every stored record has.
 abstract interface class StoredRecord {
@@ -114,6 +115,149 @@ class SwapRequest implements StoredRecord {
         createdAt: DateTime.parse(json['createdAt'] as String),
         updatedAt: DateTime.parse(json['updatedAt'] as String),
       );
+}
+
+/// A user's public profile. [userId] is the identity the app sends with
+/// listings and requests; [username] is the unique handle people see.
+class Profile implements StoredRecord {
+  Profile({
+    required this.userId,
+    required this.username,
+    required this.displayName,
+    required this.bio,
+    required this.hobbies,
+    required this.wishlist,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  final String userId;
+  String username;
+  String displayName;
+  String bio;
+
+  /// Hobby id → one of [hobbyLevels].
+  Map<String, String> hobbies;
+  List<String> wishlist;
+  @override
+  final DateTime createdAt;
+  DateTime updatedAt;
+
+  @override
+  String get id => userId;
+
+  Map<String, Object?> toJson() => {
+        'userId': userId,
+        'username': username,
+        'displayName': displayName,
+        'bio': bio,
+        'hobbies': hobbies,
+        'wishlist': wishlist,
+        'createdAt': createdAt.toUtc().toIso8601String(),
+        'updatedAt': updatedAt.toUtc().toIso8601String(),
+      };
+
+  factory Profile.fromJson(Map<String, Object?> json) => Profile(
+        userId: json['userId'] as String,
+        username: json['username'] as String,
+        displayName: json['displayName'] as String,
+        bio: json['bio'] as String,
+        hobbies: (json['hobbies'] as Map).cast<String, String>(),
+        wishlist: (json['wishlist'] as List).cast<String>(),
+        createdAt: DateTime.parse(json['createdAt'] as String),
+        updatedAt: DateTime.parse(json['updatedAt'] as String),
+      );
+}
+
+/// Validated body for PUT /profiles/:userId. The whole profile is sent each
+/// time, so a missing optional field is cleared.
+class ProfileInput {
+  ProfileInput._({
+    required this.username,
+    required this.displayName,
+    required this.bio,
+    required this.hobbies,
+    required this.wishlist,
+  });
+
+  static const minUsernameLength = 3;
+  static const maxUsernameLength = 30;
+  static const maxWishlistItems = 50;
+
+  /// Usernames keep their exact case and symbols, so `Ada` and `ada` are
+  /// different handles. Only whitespace and control characters are refused.
+  final String username;
+  final String displayName;
+  final String bio;
+  final Map<String, String> hobbies;
+  final List<String> wishlist;
+
+  factory ProfileInput.fromJson(Object? body) {
+    final json = _requireObject(body);
+    final username = _requireString(
+      json,
+      'username',
+      maxLength: maxUsernameLength,
+    );
+    if (username.length < minUsernameLength) {
+      throw ValidationException(
+        'username must be at least $minUsernameLength characters.',
+        field: 'username',
+      );
+    }
+    if (RegExp(r'[\s\x00-\x1F\x7F]').hasMatch(username)) {
+      throw ValidationException(
+        'username cannot contain spaces.',
+        field: 'username',
+      );
+    }
+
+    final rawHobbies = json['hobbies'] ?? const <String, Object?>{};
+    if (rawHobbies is! Map<String, Object?>) {
+      throw ValidationException(
+        'hobbies must be an object of hobby id to level.',
+        field: 'hobbies',
+      );
+    }
+    final hobbies = <String, String>{};
+    for (final MapEntry(key: hobbyId, value: level) in rawHobbies.entries) {
+      if (hobbyId.trim().isEmpty || hobbyId.length > 64) {
+        throw ValidationException(
+          'Each hobby id must be 1 to 64 characters.',
+          field: 'hobbies',
+        );
+      }
+      if (level is! String || !hobbyLevels.contains(level)) {
+        throw ValidationException(
+          'Hobby levels must be one of: ${hobbyLevels.join(', ')}',
+          field: 'hobbies',
+        );
+      }
+      hobbies[hobbyId] = level;
+    }
+
+    final rawWishlist = json['wishlist'] ?? const <Object?>[];
+    if (rawWishlist is! List ||
+        rawWishlist.length > maxWishlistItems ||
+        rawWishlist.any((item) => item is! String)) {
+      throw ValidationException(
+        'wishlist must be a list of at most $maxWishlistItems strings.',
+        field: 'wishlist',
+      );
+    }
+    final wishlist = [
+      for (final item in rawWishlist.cast<String>())
+        if (item.trim().isNotEmpty) _checkLength(item.trim(), 'wishlist', 60),
+    ];
+
+    return ProfileInput._(
+      username: username,
+      displayName: _requireString(json, 'displayName', maxLength: 40),
+      bio: _optionalString(json, 'bio', maxLength: 160) ?? '',
+      hobbies: hobbies,
+      wishlist: wishlist,
+    );
+  }
 }
 
 /// Validated input for creating a listing.

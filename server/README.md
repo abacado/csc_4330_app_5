@@ -73,6 +73,8 @@ The server sets `id`, `status`, `createdAt`, and `updatedAt`.
 | GET | `/requests` | `?userId=demo-user` (required) | `200` requests the user sent or received |
 | POST | `/requests` | `listingId`, `requesterId`, `message` | `201` request (`pending`) |
 | PATCH | `/requests/:id` | `{"status": "accepted"}` or `"declined"` | `200` request |
+| GET | `/profiles/:userId` | | `200` profile, or `404` if none yet |
+| PUT | `/profiles/:userId` | `username`, `displayName`, `bio` (optional), `hobbies` (`{"crochet": "learning"}`), `wishlist` (list of strings) | `201` created / `200` updated profile |
 
 Rules the server enforces:
 
@@ -82,9 +84,14 @@ Rules the server enforces:
 - Accepting a request marks the listing `completed` and declines the other
   pending requests for it.
 - A request can be decided only once (409).
+- Usernames are unique across users and compared exactly, so `@Ada` and
+  `@ada` are different people. Taking someone else's username returns 409
+  with `"field": "username"`. Usernames are 3–30 characters with no spaces;
+  any other symbols are allowed. Hobby levels are `wantToTry`, `learning`, or
+  `experienced`.
 
 Limits: title 80 characters, description 1000, condition 40, wanted item 120,
-message 500.
+message 500, display name 40, bio 160, wishlist 50 items of 60 characters.
 
 In the app, call these through `apiClient` from `lib/data/data.dart` instead
 of making HTTP requests directly.

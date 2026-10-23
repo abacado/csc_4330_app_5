@@ -25,6 +25,14 @@ NewSwapRequest requestBody(String listingId, {String requesterId = 'buyer'}) =>
       'message': 'Interested!',
     });
 
+Map<String, Object?> profileBody({String username = 'ada_lovelace'}) => {
+      'username': username,
+      'displayName': 'Ada Lovelace',
+      'bio': 'I crochet.',
+      'hobbies': {'crochet': 'experienced'},
+      'wishlist': ['Hooks'],
+    };
+
 void main() {
   late Directory dir;
   late String path;
@@ -195,6 +203,109 @@ void main() {
       expect(
         store.decideRequest('req_missing', 'accepted'),
         throwsA(isA<NotFoundException>()),
+      );
+    });
+  });
+
+  group('ProfileInput validation', () {
+    test('accepts a full profile and keeps username case and symbols', () {
+      final input = ProfileInput.fromJson(profileBody(username: 'Ada.Knits!'));
+      expect(input.username, 'Ada.Knits!');
+      expect(input.hobbies, {'crochet': 'experienced'});
+      expect(input.wishlist, ['Hooks']);
+    });
+
+    test('rejects usernames with spaces or the wrong length', () {
+      for (final bad in ['ada lovelace', 'ab', 'a' * 31, '']) {
+        expect(
+          () => ProfileInput.fromJson(profileBody(username: bad)),
+          throwsA(
+            isA<ValidationException>().having(
+              (e) => e.field,
+              'field',
+              'username',
+            ),
+          ),
+          reason: bad,
+        );
+      }
+    });
+
+    test('rejects unknown hobby levels and bad wishlists', () {
+      expect(
+        () => ProfileInput.fromJson({
+          ...profileBody(),
+          'hobbies': {'crochet': 'expert'},
+        }),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        () => ProfileInput.fromJson({...profileBody(), 'wishlist': 'Hooks'}),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+  });
+
+  group('Profiles', () {
+    late Store store;
+
+    setUp(() async => store = await Store.open(path, clock: clock));
+
+    test('are created, then updated in place', () async {
+      expect(() => store.getProfile('ada'), throwsA(isA<NotFoundException>()));
+      final (created, isNew) = await store.saveProfile(
+        'ada',
+        ProfileInput.fromJson(profileBody()),
+      );
+      expect(isNew, isTrue);
+      final (updated, isNewAgain) = await store.saveProfile(
+        'ada',
+        ProfileInput.fromJson(profileBody(username: 'ada_2')),
+      );
+      expect(isNewAgain, isFalse);
+      expect(updated.username, 'ada_2');
+      expect(updated.createdAt, created.createdAt);
+      expect(store.getProfile('ada').username, 'ada_2');
+    });
+
+    test('usernames are unique across users, compared exactly', () async {
+      await store.saveProfile('ada', ProfileInput.fromJson(profileBody()));
+      expect(
+        store.saveProfile('bob', ProfileInput.fromJson(profileBody())),
+        throwsA(
+          isA<ConflictException>().having((e) => e.field, 'field', 'username'),
+        ),
+      );
+      // Different case counts as a different username.
+      await store.saveProfile(
+        'bob',
+        ProfileInput.fromJson(profileBody(username: 'ADA_LOVELACE')),
+      );
+      // Saving your own profile again keeps your own username.
+      await store.saveProfile('ada', ProfileInput.fromJson(profileBody()));
+    });
+
+    test('a freed username can be claimed by someone else', () async {
+      await store.saveProfile('ada', ProfileInput.fromJson(profileBody()));
+      await store.saveProfile(
+        'ada',
+        ProfileInput.fromJson(profileBody(username: 'ada_new')),
+      );
+      await store.saveProfile('bob', ProfileInput.fromJson(profileBody()));
+      expect(store.getProfile('bob').username, 'ada_lovelace');
+    });
+
+    test('survive a restart, and old data files without profiles load',
+        () async {
+      await File(path).writeAsString('{"version":1,"listings":[]}');
+      final first = await Store.open(path, clock: clock);
+      await first.saveProfile('ada', ProfileInput.fromJson(profileBody()));
+      await first.flush();
+
+      final second = await Store.open(path);
+      expect(
+        second.getProfile('ada').toJson(),
+        first.getProfile('ada').toJson(),
       );
     });
   });
