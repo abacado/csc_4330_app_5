@@ -20,7 +20,7 @@ class _AvailableListingsState extends State<AvailableListings> {
   @override
   void initState() {
     super.initState();
-    _listings = _load();
+    _listings = _load()..ignore();
     widget.reloadSignal?.addListener(_refresh);
   }
 
@@ -46,6 +46,10 @@ class _AvailableListingsState extends State<AvailableListings> {
   void _refresh() {
     if (!mounted) return;
     final next = _load();
+    // A reload can start outside a build (from a tap or a new post) and fail
+    // before FutureBuilder subscribes. Mark the error as handled here; the
+    // FutureBuilder still receives it and shows the retry card.
+    next.ignore();
     setState(() {
       _listings = next;
     });
