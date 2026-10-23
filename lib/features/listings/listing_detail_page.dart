@@ -4,6 +4,7 @@ import '../../data/data.dart';
 import '../messages/send_request_sheet.dart';
 import '../profile/profile.dart';
 import 'listing_photo.dart';
+import 'listing_badge.dart';
 
 class ListingDetailPage extends StatefulWidget {
   const ListingDetailPage({
@@ -86,11 +87,7 @@ class _ListingDetailPageState extends State<ListingDetailPage> {
               Wrap(
                 spacing: 8,
                 children: [
-                  Chip(
-                    label: Text(
-                      item.type == ListingType.swap ? 'Swap' : 'Giveaway',
-                    ),
-                  ),
+                  ListingBadge(type: item.type),
                   Chip(label: Text(item.condition)),
                   Chip(label: Text(HobbyCatalog.nameFor(item.hobbyId))),
                   if (!item.isAvailable) const Chip(label: Text('Completed')),

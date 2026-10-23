@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../shared/brand_mark.dart';
+
 import '../hobbies/explore_page.dart';
 import '../listings/post_page.dart';
 import '../messages/messages_page.dart';
@@ -41,7 +43,16 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: Text(_selected == 0 ? 'HobbySwap' : _labels[_selected]),
+      title: _selected == 0
+          ? const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                BrandMark(size: 34),
+                SizedBox(width: 10),
+                Text('HobbySwap'),
+              ],
+            )
+          : Text(_labels[_selected]),
     ),
     body: SafeArea(
       child: Center(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'hobby_catalog.dart';
+import '../../shared/hobby_icon.dart';
 
 class HobbyDetailPage extends StatefulWidget {
   const HobbyDetailPage({
@@ -26,10 +27,8 @@ class _HobbyDetailPageState extends State<HobbyDetailPage> {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              Icon(
-                hobby.icon,
-                size: 56,
-                color: Theme.of(context).colorScheme.primary,
+              Center(
+                child: HobbyIcon(id: hobby.id, icon: hobby.icon, size: 80),
               ),
               const SizedBox(height: 20),
               Text(
@@ -67,6 +66,17 @@ class _HobbyDetailPageState extends State<HobbyDetailPage> {
               Text(
                 '${widget.checkedItems.length} of ${hobby.starterItems.length} ready',
               ),
+              const SizedBox(height: 10),
+              Semantics(
+                label: 'Starter supplies progress',
+                child: LinearProgressIndicator(
+                  minHeight: 9,
+                  value: hobby.starterItems.isEmpty
+                      ? 0
+                      : widget.checkedItems.length / hobby.starterItems.length,
+                ),
+              ),
+              const SizedBox(height: 16),
               for (final item in hobby.starterItems)
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
